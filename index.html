@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mason Order Portal</title>
-  <meta name="description" content="Mason branded wrapper for the Device Order Portal" />
+  <title>Mason Portal</title>
+  <meta name="description" content="Mason branded wrapper for the customer, ops, and RMA portals" />
   <style>
     :root{
       --bg:#0b0b0f;
@@ -60,7 +60,7 @@
       pointer-events:none;
     }
     .card{
-      width:min(520px, 100%);
+      width:min(560px, 100%);
       border:1px solid var(--border);
       border-radius:24px;
       background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
@@ -141,7 +141,7 @@
   </style>
 </head>
 <body>
-  <iframe id="portalFrame" title="Mason Order Portal"></iframe>
+  <iframe id="portalFrame" title="Mason Portal"></iframe>
 
   <div id="loadingOverlay" class="overlay" aria-live="polite" aria-busy="true">
     <div class="card">
@@ -152,8 +152,8 @@
           alt="Mason"
         />
       </div>
-      <h1>Loading Mason Order Portal</h1>
-      <p>Please wait while we securely connect you to your customer portal.</p>
+      <h1 id="loadingTitle">Loading Mason Portal</h1>
+      <p id="loadingMessage">Please wait while we securely connect you to the portal.</p>
       <div class="spinner" aria-hidden="true"></div>
     </div>
   </div>
@@ -168,7 +168,7 @@
         />
       </div>
       <h1>Unable to open portal</h1>
-      <p id="errorMessage">A valid portal token was not found in the URL.</p>
+      <p id="errorMessage">A valid portal parameter was not found in the URL.</p>
       <div class="actions">
         <button id="retryBtn" class="btn" type="button">Retry</button>
       </div>
@@ -186,8 +186,13 @@
     const errorMessage = document.getElementById("errorMessage");
     const debugLine = document.getElementById("debugLine");
     const retryBtn = document.getElementById("retryBtn");
+    const loadingTitle = document.getElementById("loadingTitle");
+    const loadingMessage = document.getElementById("loadingMessage");
 
-    function showLoading() {
+    function showLoading(mode) {
+      const meta = getPortalMeta(mode);
+      loadingTitle.textContent = meta.loadingTitle;
+      loadingMessage.textContent = meta.loadingMessage;
       loadingOverlay.classList.remove("hidden");
       errorOverlay.classList.add("hidden");
     }
@@ -204,29 +209,67 @@
       errorOverlay.classList.add("hidden");
     }
 
-    function buildPortalUrl() {
+    function getPortalMeta(mode) {
+      switch (mode) {
+        case "ops":
+          return {
+            loadingTitle: "Loading Mason Operations Portal",
+            loadingMessage: "Please wait while we securely connect you to the operations dashboard."
+          };
+        case "rma":
+          return {
+            loadingTitle: "Loading Mason RMA Portal",
+            loadingMessage: "Please wait while we securely connect you to the RMA portal."
+          };
+        default:
+          return {
+            loadingTitle: "Loading Mason Order Portal",
+            loadingMessage: "Please wait while we securely connect you to your customer portal."
+          };
+      }
+    }
+
+    function getRouteFromUrl() {
       const params = new URLSearchParams(window.location.search);
       const token = (params.get("token") || "").trim();
+      const portal = (params.get("portal") || "").trim().toLowerCase();
 
-      if (!token) {
-        throw new Error("Missing portal token. Please use the full customer portal link.");
+      if (token) {
+        return { mode: "customer", token: token, portal: "" };
       }
 
+      if (portal === "ops" || portal === "rma") {
+        return { mode: portal, token: "", portal: portal };
+      }
+
+      throw new Error("Missing portal token or portal mode. Use ?token=... for customer links, ?portal=ops for ops, or ?portal=rma for RMA.");
+    }
+
+    function buildPortalUrl() {
       if (!APPS_SCRIPT_BASE_URL || APPS_SCRIPT_BASE_URL.includes("https://script.google.com/macros/s/AKfycbxPMd-xeExz6CikGoxYDtFn8zvvB_prc61bcnQvV5kTNm1BSL0Q72FPUrww_R74Y-kb/exec")) {
         throw new Error("Apps Script base URL is not configured in index.html yet.");
       }
 
+      const route = getRouteFromUrl();
       const appUrl = new URL(APPS_SCRIPT_BASE_URL);
-      appUrl.searchParams.set("token", token);
-      return appUrl.toString();
+
+      if (route.mode === "customer") {
+        appUrl.searchParams.set("token", route.token);
+      } else {
+        appUrl.searchParams.set("portal", route.portal);
+      }
+
+      return {
+        mode: route.mode,
+        url: appUrl.toString()
+      };
     }
 
     function loadPortal() {
-      showLoading();
-
       try {
-        const portalUrl = buildPortalUrl();
-        iframe.src = portalUrl;
+        const portal = buildPortalUrl();
+        showLoading(portal.mode);
+        iframe.src = portal.url;
       } catch (err) {
         showError(err && err.message ? err.message : "Unable to build the portal URL.");
       }
@@ -245,4 +288,3 @@
   </script>
 </body>
 </html>
-
