@@ -258,9 +258,9 @@
     }
 
     function buildPortalUrl() {
-      if (!APPS_SCRIPT_BASE_URL || APPS_SCRIPT_BASE_URL.includes("https://script.google.com/macros/s/AKfycbxPMd-xeExz6CikGoxYDtFn8zvvB_prc61bcnQvV5kTNm1BSL0Q72FPUrww_R74Y-kb/exec")) {
-        throw new Error("Apps Script base URL is not configured in index.html yet.");
-      }
+      if (!APPS_SCRIPT_BASE_URL || APPS_SCRIPT_BASE_URL.includes("PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE")) {
+  throw new Error("Apps Script base URL is not configured in index.html yet.");
+    }
 
       const route = getRouteFromUrl();
       const appUrl = new URL(APPS_SCRIPT_BASE_URL);
