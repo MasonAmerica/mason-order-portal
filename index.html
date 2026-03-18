@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mason Order Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #loader {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      z-index: 10;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loader">
+  <h2>Loading Mason Portal...</h2>
+</div>
+
+<iframe id="portalFrame"></iframe>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+
+  const baseUrl = "https://script.google.com/macros/s/AKfycbxPMd-xeExz6CikGoxYDtFn8zvvB_prc61bcnQvV5kTNm1BSL0Q72FPUrww_R74Y-kb/exec";
+
+  if (!token) {
+    document.getElementById("loader").innerHTML = "<h2>Missing access token</h2>";
+  } else {
+    const iframe = document.getElementById("portalFrame");
+    iframe.src = `${baseUrl}?token=${token}`;
+
+    iframe.onload = () => {
+      document.getElementById("loader").style.display = "none";
+    };
+  }
+</script>
+
+</body>
+</html>
