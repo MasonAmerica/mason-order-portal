@@ -298,6 +298,14 @@
       try {
         const portal = buildPortalUrl();
         showLoading(portal.mode);
+        if (portal.mode === "ops" || portal.mode === "rma" || portal.mode === "admin") {
+          // Internal tools are staff-session-authenticated and now explicitly
+          // refuse to be framed (server sets XFrameOptionsMode.DEFAULT), so an
+          // iframe would just show blank. Navigate the whole tab instead --
+          // replace() so the wrapper doesn't sit in back/forward history.
+          window.location.replace(portal.url);
+          return;
+        }
         iframe.src = portal.url;
       } catch (err) {
         showError(err && err.message ? err.message : "Unable to build the portal URL.");
