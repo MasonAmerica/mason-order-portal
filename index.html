@@ -189,8 +189,17 @@
   </div>
 
   <script>
-    // Replace this with your live Google Apps Script web app URL.
+    // Customer-facing deployment: "Anyone, even anonymous" -- required so
+    // customers without a Google account can open ?token=... links. Only
+    // ever used for the customer ordering flow (server-side code validates
+    // the token before returning anything, regardless of who has this URL).
     const APPS_SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbxPMd-xeExz6CikGoxYDtFn8zvvB_prc61bcnQvV5kTNm1BSL0Q72FPUrww_R74Y-kb/exec";
+
+    // Internal tools deployment: "Anyone within bymason.com" -- requires a
+    // real company Google login, so the backend can verify the caller is
+    // actual Mason staff before returning order/RMA/admin data. Used only
+    // for ?portal=ops / ?portal=rma / ?portal=admin.
+    const APPS_SCRIPT_BASE_URL_INTERNAL = "https://script.google.com/a/macros/bymason.com/s/AKfycby1_bYY8OahuZX2uLQ6ZSXWux-cAh2M6FZbdrKvpsK3faQBl7YDq9JENZU_YjfWMnVV/exec";
 
     const iframe = document.getElementById("portalFrame");
     const loadingOverlay = document.getElementById("loadingOverlay");
@@ -233,6 +242,11 @@
             loadingTitle: "Loading Mason RMA Portal",
             loadingMessage: "Please wait while we securely connect you to the RMA portal."
           };
+        case "admin":
+          return {
+            loadingTitle: "Loading Mason Admin",
+            loadingMessage: "Please wait while we securely connect you to the admin portal."
+          };
         default:
           return {
             loadingTitle: "Loading Mason Order Portal",
@@ -250,20 +264,23 @@
         return { mode: "customer", token: token, portal: "" };
       }
 
-      if (portal === "ops" || portal === "rma") {
+      if (portal === "ops" || portal === "rma" || portal === "admin") {
         return { mode: portal, token: "", portal: portal };
       }
 
-      throw new Error("Missing portal token or portal mode. Use ?token=... for customer links, ?portal=ops for ops, or ?portal=rma for RMA.");
+      throw new Error("Missing portal token or portal mode. Use ?token=... for customer links, ?portal=ops for ops, ?portal=rma for RMA, or ?portal=admin for the admin portal.");
     }
 
     function buildPortalUrl() {
-      if (!APPS_SCRIPT_BASE_URL || !APPS_SCRIPT_BASE_URL.startsWith("https://script.google.com/macros/s/")) {
-  throw new Error("Invalid Apps Script URL configuration.");
-}
-
       const route = getRouteFromUrl();
-      const appUrl = new URL(APPS_SCRIPT_BASE_URL);
+      const isInternal = route.mode === "ops" || route.mode === "rma" || route.mode === "admin";
+      const baseUrl = isInternal ? APPS_SCRIPT_BASE_URL_INTERNAL : APPS_SCRIPT_BASE_URL;
+
+      if (!baseUrl || !baseUrl.startsWith("https://script.google.com/")) {
+        throw new Error("Invalid Apps Script URL configuration.");
+      }
+
+      const appUrl = new URL(baseUrl);
 
       if (route.mode === "customer") {
         appUrl.searchParams.set("token", route.token);
